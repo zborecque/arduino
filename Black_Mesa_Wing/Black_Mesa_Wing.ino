@@ -237,64 +237,16 @@ void loop()
     FastLED.show();
     FastLED.delay(1000 / UPDATES_PER_SECOND);
   }
-
-  
-  
-    /*
-      for(int i = 0; i < NUM_LEDS; i++ )
-       {
-       if (pwm_value > 1700) {
-          leds[i].setRGB(125,0,255);  // Set Color HERE!!!
-       }
-       else if (pwm_value > 1500) {
-          leds[i].setRGB(255,125,250);  // Set Color HERE!!!
-       }
-       else {
-          leds[i].setRGB(255,255,0);  // Set Color HERE!!!
-       }
-       leds[i].fadeLightBy(brightness);
-       FastLED.show();
-       delay(80);  
-      }
-
-      delay(500);
-      Serial.println(c);
-
-       
-      pwm_value = pulseIn(PWM_PIN, HIGH);
-      Serial.println(pwm_value);
-
-            for(int i = 0; i < NUM_LEDS; i++ )
-       {
-       leds[i].setRGB(0,0,0);  // Set Color HERE!!!
-       leds[i].fadeLightBy(brightness);
-       FastLED.show(); 
-       delay(80);  
-      }
-    
-    
-    ChangePalettePeriodically();
-    
-    static uint8_t startIndex = 0;
-    startIndex = startIndex + 1; /* motion speed */
-    /*
-    FillLEDsFromPaletteColors( startIndex);
-    
-    FastLED.show();
-    FastLED.delay(1000 / UPDATES_PER_SECOND);
-    */
 }
 
 void FillLEDsFromPaletteColors( uint8_t colorIndex)
 {
-    uint8_t brightness = 255;
-    
-    for( int i = 0; i < NUM_LEDS; ++i) {
-        leds[i] = ColorFromPalette( currentPalette, colorIndex, brightness, currentBlending);
-        colorIndex += 3;
-    }
+  uint8_t brightness = 255;
+  for( int i = 0; i < NUM_LEDS; ++i) {
+    leds[i] = ColorFromPalette( currentPalette, colorIndex, brightness, currentBlending);
+    colorIndex += 3;
+  }
 }
-
 
 // There are several different palettes of colors demonstrated here.
 //
@@ -306,31 +258,26 @@ void FillLEDsFromPaletteColors( uint8_t colorIndex)
 
 void ChangePalettePeriodically()
 {
-    uint8_t secondHand = (millis() / 1000) % 60;
-    static uint8_t lastSecond = 99;
-    
-    if( lastSecond != secondHand) {
-        lastSecond = secondHand;
-
-        if( secondHand < 30 ) { SetupZbrTestPalette();    currentBlending = LINEARBLEND;  }
-        else {  currentPalette = RainbowColors_p;         currentBlending = LINEARBLEND;  }
-
-        /*
-        
-        if( secondHand ==  0)  { currentPalette = RainbowColors_p;         currentBlending = LINEARBLEND; }
-        if( secondHand == 10)  { currentPalette = RainbowStripeColors_p;   currentBlending = NOBLEND;  }
-        if( secondHand == 15)  { currentPalette = RainbowStripeColors_p;   currentBlending = LINEARBLEND; }
-        if( secondHand == 20)  { SetupPurpleAndGreenPalette();             currentBlending = LINEARBLEND; }
-        if( secondHand == 25)  { SetupTotallyRandomPalette();              currentBlending = LINEARBLEND; }
-        if( secondHand == 30)  { SetupBlackAndWhiteStripedPalette();       currentBlending = NOBLEND; }
-        if( secondHand == 35)  { SetupBlackAndWhiteStripedPalette();       currentBlending = LINEARBLEND; }
-        if( secondHand == 40)  { currentPalette = CloudColors_p;           currentBlending = LINEARBLEND; }
-        if( secondHand == 45)  { currentPalette = PartyColors_p;           currentBlending = LINEARBLEND; }
-        if( secondHand == 50)  { currentPalette = myRedWhiteBluePalette_p; currentBlending = NOBLEND;  }
-        if( secondHand == 55)  { currentPalette = myRedWhiteBluePalette_p; currentBlending = LINEARBLEND; }
-
-        */
-    }
+  uint8_t secondHand = (millis() / 1000) % 60;
+  static uint8_t lastSecond = 99;
+  if( lastSecond != secondHand) {
+    lastSecond = secondHand;
+    if( secondHand < 30 ) { SetupZbrTestPalette();    currentBlending = LINEARBLEND;  }
+    else {  currentPalette = RainbowColors_p;         currentBlending = LINEARBLEND;  }
+    /*
+    if( secondHand ==  0)  { currentPalette = RainbowColors_p;         currentBlending = LINEARBLEND; }
+    if( secondHand == 10)  { currentPalette = RainbowStripeColors_p;   currentBlending = NOBLEND;  }
+    if( secondHand == 15)  { currentPalette = RainbowStripeColors_p;   currentBlending = LINEARBLEND; }
+    if( secondHand == 20)  { SetupPurpleAndGreenPalette();             currentBlending = LINEARBLEND; }
+    if( secondHand == 25)  { SetupTotallyRandomPalette();              currentBlending = LINEARBLEND; }
+    if( secondHand == 30)  { SetupBlackAndWhiteStripedPalette();       currentBlending = NOBLEND; }
+    if( secondHand == 35)  { SetupBlackAndWhiteStripedPalette();       currentBlending = LINEARBLEND; }
+    if( secondHand == 40)  { currentPalette = CloudColors_p;           currentBlending = LINEARBLEND; }
+    if( secondHand == 45)  { currentPalette = PartyColors_p;           currentBlending = LINEARBLEND; }
+    if( secondHand == 50)  { currentPalette = myRedWhiteBluePalette_p; currentBlending = NOBLEND;  }
+    if( secondHand == 55)  { currentPalette = myRedWhiteBluePalette_p; currentBlending = LINEARBLEND; }
+    */
+  }
 }
 
 void AircraftLights() {
@@ -401,53 +348,53 @@ void AircraftLights() {
 void TurnSignal_R() 
 {  
   for(int i = 0; i < WING_R_LED_LENGTH; i++) {
-      leds[i].setRGB(255,255,0);
-      leds[i].fadeLightBy(brightness);
-      leds[(WING_R_LED_LENGTH*2) + WING_R_LED_2_OFFSET - (i + 1)].setRGB(255,255,0);
-      leds[(WING_R_LED_LENGTH*2) + WING_R_LED_2_OFFSET - (i + 1)].fadeLightBy(brightness);
-      FastLED.show();
-      delay(10); 
-    }
-    delay(80);
-    for(int i = WING_R_LED_1_START; i < WING_R_LED_LENGTH; i++) {
-      leds[i].setRGB(0,0,0);
-      leds[i].fadeLightBy(brightness);
-      leds[(WING_R_LED_LENGTH*2) + WING_R_LED_2_OFFSET - (i + 1)].setRGB(0,0,0);
-      leds[(WING_R_LED_LENGTH*2) + WING_R_LED_2_OFFSET - (i + 1)].fadeLightBy(brightness);
-      FastLED.show();
-      delay(10); 
-    }
-    delay(80);
+    leds[i].setRGB(255,255,0);
+    leds[i].fadeLightBy(brightness);
+    leds[(WING_R_LED_LENGTH*2) + WING_R_LED_2_OFFSET - (i + 1)].setRGB(255,255,0);
+    leds[(WING_R_LED_LENGTH*2) + WING_R_LED_2_OFFSET - (i + 1)].fadeLightBy(brightness);
+    FastLED.show();
+    delay(10); 
+  }
+  delay(80);
+  for(int i = WING_R_LED_1_START; i < WING_R_LED_LENGTH; i++) {
+    leds[i].setRGB(0,0,0);
+    leds[i].fadeLightBy(brightness);
+    leds[(WING_R_LED_LENGTH*2) + WING_R_LED_2_OFFSET - (i + 1)].setRGB(0,0,0);
+    leds[(WING_R_LED_LENGTH*2) + WING_R_LED_2_OFFSET - (i + 1)].fadeLightBy(brightness);
+    FastLED.show();
+    delay(10); 
+  }
+  delay(80);
 }
 
 void TurnSignal_L() 
 {
   for(int i = 0; i < WING_L_LED_LENGTH; i++) {
-      leds[i + WING_L_LED_1_START].setRGB(255,255,0);
-      leds[i + WING_L_LED_1_START].fadeLightBy(brightness);
-      leds[(WING_L_LED_LENGTH*2) + WING_L_LED_2_OFFSET - (i + 1) + WING_L_LED_1_START].setRGB(255,255,0);
-      leds[(WING_L_LED_LENGTH*2) + WING_L_LED_2_OFFSET - (i + 1) + WING_L_LED_1_START].fadeLightBy(brightness);
-      FastLED.show();
-      delay(10); 
-    }
-    delay(80);
-    for(int i = 0; i < WING_L_LED_LENGTH; i++) {
-      leds[i + WING_L_LED_1_START].setRGB(0,0,0);
-      leds[i + WING_L_LED_1_START].fadeLightBy(brightness);
-      leds[(WING_L_LED_LENGTH*2) + WING_L_LED_2_OFFSET - (i + 1) + WING_L_LED_1_START].setRGB(0,0,0);
-      leds[(WING_L_LED_LENGTH*2) + WING_L_LED_2_OFFSET - (i + 1) + WING_L_LED_1_START].fadeLightBy(brightness);
-      FastLED.show();
-      delay(10); 
-    }
-    delay(80);
+    leds[i + WING_L_LED_1_START].setRGB(255,255,0);
+    leds[i + WING_L_LED_1_START].fadeLightBy(brightness);
+    leds[(WING_L_LED_LENGTH*2) + WING_L_LED_2_OFFSET - (i + 1) + WING_L_LED_1_START].setRGB(255,255,0);
+    leds[(WING_L_LED_LENGTH*2) + WING_L_LED_2_OFFSET - (i + 1) + WING_L_LED_1_START].fadeLightBy(brightness);
+    FastLED.show();
+    delay(10); 
+  }
+  delay(80);
+  for(int i = 0; i < WING_L_LED_LENGTH; i++) {
+    leds[i + WING_L_LED_1_START].setRGB(0,0,0);
+    leds[i + WING_L_LED_1_START].fadeLightBy(brightness);
+    leds[(WING_L_LED_LENGTH*2) + WING_L_LED_2_OFFSET - (i + 1) + WING_L_LED_1_START].setRGB(0,0,0);
+    leds[(WING_L_LED_LENGTH*2) + WING_L_LED_2_OFFSET - (i + 1) + WING_L_LED_1_START].fadeLightBy(brightness);
+    FastLED.show();
+    delay(10); 
+  }
+  delay(80);
 }
 
 // This function fills the palette with totally random colors.
 void SetupTotallyRandomPalette()
 {
-    for( int i = 0; i < 16; ++i) {
-        currentPalette[i] = CHSV( random8(), 255, random8());
-    }
+  for( int i = 0; i < 16; ++i) {
+    currentPalette[i] = CHSV( random8(), 255, random8());
+  }
 }
 
 // This function sets up a palette of black and white stripes,
@@ -456,42 +403,27 @@ void SetupTotallyRandomPalette()
 // to set them up.
 void SetupBlackAndWhiteStripedPalette()
 {
-    // 'black out' all 16 palette entries...
-    fill_solid( currentPalette, 16, CRGB::Black);
-    // and set every fourth one to white.
-    currentPalette[0] = CRGB::White;
-    currentPalette[4] = CRGB::White;
-    currentPalette[8] = CRGB::White;
-    currentPalette[12] = CRGB::White;
-    
+  // 'black out' all 16 palette entries...
+  fill_solid( currentPalette, 16, CRGB::Black);
+  // and set every fourth one to white.
+  currentPalette[0] = CRGB::White;
+  currentPalette[4] = CRGB::White;
+  currentPalette[8] = CRGB::White;
+  currentPalette[12] = CRGB::White;
 }
 
 // This function sets up a palette of purple and green stripes.
 void SetupPurpleAndGreenPalette()
 {
-    CRGB purple = CHSV( HUE_PURPLE, 255, 255);
-    CRGB green  = CHSV( HUE_GREEN, 255, 255);
-    CRGB black  = CRGB::Black;
-    
-    currentPalette = CRGBPalette16(
-                                   green,  green,  black,  black,
-                                   purple, purple, black,  black,
-                                   green,  green,  black,  black,
-                                   purple, purple, black,  black );
+  CRGB purple = CHSV( HUE_PURPLE, 255, 255);
+  CRGB green  = CHSV( HUE_GREEN, 255, 255);
+  CRGB black  = CRGB::Black;
+  currentPalette = CRGBPalette16(
+                                 green,  green,  black,  black,
+                                 purple, purple, black,  black,
+                                 green,  green,  black,  black,
+                                 purple, purple, black,  black );
 }
-
-void SetupZbrTestPalette()
-{
-    CRGB red  = CHSV( HUE_PINK, 255, 255);
-    CRGB black  = CRGB::Black;
-
-    currentPalette = CRGBPalette16(
-                               red,  black,  red,  black,
-                               red,  black,  red,  black,
-                               red,  black,  red,  black,
-                               red,  black,  red,  black );
-}
-
 
 // This example shows how to set up a static color palette
 // which is stored in PROGMEM (flash), which is almost always more
