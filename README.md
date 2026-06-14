@@ -8,11 +8,11 @@ Just a bunch of my personal Arduino experiments used mainly to operate addressab
 
 ## Projects
 
-### FPV Combat damage fire
+### FPV_Combat_damage_fire
 
 _under development_
 
-A concept of having a [FPV Combat](https://fpv-combat.com) aircraft of (Raptus)[https://www.fpv-combat.com/download/raptus/] class being illuminated with addressable LEDs that would imitate fire effects increasing with taken damage. There might be also some additional effects available. Main PWM signal will be coming from the FPV Combat board (which is able to control one of the servos - to indicate taken damage by briefly distorting one of the aircraft steering planes - for example rudder). Additional effects might use another PWM channel, but also detecting the FPVC mixing of a single PWM channel might be used.
+A concept of having a [FPV Combat](https://fpv-combat.com) aircraft of [Raptus](https://www.fpv-combat.com/download/raptus/) class being illuminated with addressable LEDs that would imitate fire effects increasing with taken damage. There might be also some additional effects available. Main PWM signal will be coming from the FPV Combat board (which is able to control one of the servos - to indicate taken damage by briefly distorting one of the aircraft steering planes - for example rudder). Additional effects might use another PWM channel, but also detecting the FPVC mixing of a single PWM channel might be used.
 
 ### Black_Mesa_Wing
 

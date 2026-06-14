@@ -1,15 +1,66 @@
 #include <FastLED.h>
 
 // MAIN SETTINGS
-#define LED_PIN             5
-#define NUM_LEDS            58
-#define BRIGHTNESS          64
-#define PWM_PIN             7
-#define LED_TYPE            WS2811
-#define COLOR_ORDER         GRB
-#define UPDATES_PER_SECOND  100
+#define NUM_LEDS                58
+#define BRIGHTNESS              64
+#define LED_PIN                 5
+#define PWM_SWTCH_PIN           7
+#define PWM_FPVC_PIN            9
+#define LED_TYPE                WS2811
+#define COLOR_ORDER             GRB
+#define UPDATES_PER_SECOND      100
+#define FRAMES_PER_SECOND       60
+
+// PWM VALUESx
+#define PWM_SWTCH_ALL_OFF_HI    1200
+#define PWM_SWTCH_FIRE_DMG_LO   1400
+#define PWM_SWTCH_FIRE_DMG_HI   1600
+#define PWM_CUSTOM_ANIM_LO      1750
+#define PWM_FPVC_NOHIT_LO       1450
+#define PWM_FPVC_NOHIT_HI       1650
+
+bool gReverseDirection = false;
+
+// Fire2012 by Mark Kriegsman, July 2012
+// as part of "Five Elements" shown here: http://youtu.be/knWiGsmgycY
+//// 
+// This basic one-dimensional 'fire' simulation works roughly as follows:
+// There's a underlying array of 'heat' cells, that model the temperature
+// at each point along the line.  Every cycle through the simulation, 
+// four steps are performed:
+//  1) All cells cool down a little bit, losing heat to the air
+//  2) The heat from each cell drifts 'up' and diffuses a little
+//  3) Sometimes randomly new 'sparks' of heat are added at the bottom
+//  4) The heat from each cell is rendered as a color into the leds array
+//     The heat-to-color mapping uses a black-body radiation approximation.
+//
+// Temperature is in arbitrary units from 0 (cold black) to 255 (white hot).
+//
+// This simulation scales it self a bit depending on NUM_LEDS; it should look
+// "OK" on anywhere from 20 to 100 LEDs without too much tweaking. 
+//
+// I recommend running this simulation at anywhere from 30-100 frames per second,
+// meaning an interframe delay of about 10-35 milliseconds.
+//
+// Looks best on a high-density LED setup (60+ pixels/meter).
+//
+//
+// There are two main parameters you can play with to control the look and
+// feel of your fire: COOLING (used in step 1 above), and SPARKING (used
+// in step 3 above).
+//
+// COOLING: How much does the air cool as it rises?
+// Less cooling = taller flames.  More cooling = shorter flames.
+// Default 55, suggested range 20-100 
+#define COOLING  55
+
+// SPARKING: What chance (out of 255) is there that a new spark will be lit?
+// Higher chance = more roaring fire.  Lower chance = more flickery fire.
+// Default 120, suggested range 50-200.
+#define SPARKING 120
 
 // LED SECTIONS
+// TODO 
 
 // L WING LED
 #define WING_R_LED_1_START  0
@@ -75,7 +126,9 @@
 CRGB leds[NUM_LEDS];
 
 int c = 1;
-int pwm_value;
+int hits_taken = 0;
+int pwm_switch_value;
+int pwm_fpvc_value;
 
 int CLR1_R_HI = CLR1_M_LO + 1;
 int CLR1_L_LO = CLR1_M_HI - 1;
@@ -93,19 +146,8 @@ int CLR3_L_LO = CLR3_M_HI - 1;
 
 // == FIRE EXAMPLE =============================================
 
-#include <FastLED.h>
 
-#define LED_PIN     5
-#define COLOR_ORDER GRB
-#define CHIPSET     WS2811
-#define NUM_LEDS    30
 
-#define BRIGHTNESS  200
-#define FRAMES_PER_SECOND 60
-
-bool gReverseDirection = false;
-
-CRGB leds[NUM_LEDS];
 
 // Fire2012 with programmable Color Palette
 //
@@ -136,9 +178,16 @@ CRGB leds[NUM_LEDS];
 
 CRGBPalette16 gPal;
 
+CRGBPalette16 currentPalette;
+TBlendType    currentBlending;
+
+extern CRGBPalette16 myRedWhiteBluePalette;
+extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
+
 void setup() {
+
   delay(3000); // sanity delay
-  FastLED.addLeds<CHIPSET, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
   FastLED.setBrightness( BRIGHTNESS );
 
   // This first palette is the basic 'black body radiation' colors,
@@ -155,12 +204,28 @@ void setup() {
   // Third, here's a simpler, three-step gradient, from black to red to white
   //   gPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::White);
 
+  pinMode(PWM_SWTCH_PIN, INPUT);
+  pinMode(PWM_FPVC_PIN, INPUT);
+
+
+  Serial.begin(115200);
+  
+  //currentPalette = RainbowColors_p;
+  //currentBlending = LINEARBLEND;
+
 }
 
 void loop()
 {
+
   // Add entropy to random number generator; we use a lot of it.
-  random16_add_entropy( random());
+  random16_add_entropy(random());
+
+  // Set up PWM readers
+  pwm_switch_value = pulseIn(PWM_SWTCH_PIN, HIGH);
+  pwm_fpvc_value = pulseIn(PWM_FPVC_PIN, HIGH);
+
+  Serial.println(pwm_switch_value + " | " + pwm_fpvc_value);
 
   // Fourth, the most sophisticated: this one sets up a new palette every
   // time through the loop, based on a hue that changes every time.
@@ -173,52 +238,59 @@ void loop()
   //   CRGB lightcolor = CHSV(hue,128,255); // half 'whitened', full brightness
   //   gPal = CRGBPalette16( CRGB::Black, darkcolor, lightcolor, CRGB::White);
 
-
   Fire2012WithPalette(); // run simulation frame, using palette colors
   
   FastLED.show(); // display this frame
   FastLED.delay(1000 / FRAMES_PER_SECOND);
+
+  /*
+  if ((pwm_value >= CLR1_R_LO and pwm_value <= CLR1_R_HI)
+    or (pwm_value >= CLR2_R_LO and pwm_value <= CLR2_R_HI)
+    or (pwm_value >= CLR3_R_LO and pwm_value <= CLR3_R_HI)) {
+    TurnSignal_R();
+  }
+  else if ((pwm_value >= CLR1_L_LO and pwm_value <= CLR1_L_HI)
+    or (pwm_value >= CLR2_L_LO and pwm_value <= CLR2_L_HI)
+    or (pwm_value >= CLR3_L_LO and pwm_value <= CLR3_L_HI)) {
+    TurnSignal_L();
+  }
+  else if (pwm_value >= CLR1_M_LO and pwm_value <= CLR1_M_HI) {
+    currentPalette = RainbowStripeColors_p;
+    currentBlending = NOBLEND;
+    static uint8_t startIndex = 0;
+    startIndex = startIndex + 1;
+    FillLEDsFromPaletteColors( startIndex );
+    FastLED.show();
+    FastLED.delay(1000 / UPDATES_PER_SECOND);
+  }
+  else if (pwm_value >= CLR2_M_LO and pwm_value <= CLR2_M_HI) {
+    currentPalette = CloudColors_p;           currentBlending = LINEARBLEND;
+    static uint8_t startIndex = 0;
+    startIndex = startIndex + 1;
+    FillLEDsFromPaletteColors( startIndex );
+    FastLED.show();
+    FastLED.delay(1000 / UPDATES_PER_SECOND);
+  }
+  else if (pwm_value >= CLR3_M_LO and pwm_value <= CLR3_M_HI) {
+    SetupBlackAndWhiteStripedPalette();       currentBlending = LINEARBLEND;
+    static uint8_t startIndex = 0;
+    startIndex = startIndex + 1;
+    FillLEDsFromPaletteColors( startIndex );
+    FastLED.show();
+    FastLED.delay(1000 / UPDATES_PER_SECOND);
+  }
+  else {
+    currentPalette = RainbowColors_p;
+    currentBlending = LINEARBLEND; 
+    static uint8_t startIndex = 0;
+    startIndex = startIndex + 1;
+    FillLEDsFromPaletteColors( startIndex );
+    FastLED.show();
+    FastLED.delay(1000 / UPDATES_PER_SECOND);
+  }
+  */
+
 }
-
-
-// Fire2012 by Mark Kriegsman, July 2012
-// as part of "Five Elements" shown here: http://youtu.be/knWiGsmgycY
-//// 
-// This basic one-dimensional 'fire' simulation works roughly as follows:
-// There's a underlying array of 'heat' cells, that model the temperature
-// at each point along the line.  Every cycle through the simulation, 
-// four steps are performed:
-//  1) All cells cool down a little bit, losing heat to the air
-//  2) The heat from each cell drifts 'up' and diffuses a little
-//  3) Sometimes randomly new 'sparks' of heat are added at the bottom
-//  4) The heat from each cell is rendered as a color into the leds array
-//     The heat-to-color mapping uses a black-body radiation approximation.
-//
-// Temperature is in arbitrary units from 0 (cold black) to 255 (white hot).
-//
-// This simulation scales it self a bit depending on NUM_LEDS; it should look
-// "OK" on anywhere from 20 to 100 LEDs without too much tweaking. 
-//
-// I recommend running this simulation at anywhere from 30-100 frames per second,
-// meaning an interframe delay of about 10-35 milliseconds.
-//
-// Looks best on a high-density LED setup (60+ pixels/meter).
-//
-//
-// There are two main parameters you can play with to control the look and
-// feel of your fire: COOLING (used in step 1 above), and SPARKING (used
-// in step 3 above).
-//
-// COOLING: How much does the air cool as it rises?
-// Less cooling = taller flames.  More cooling = shorter flames.
-// Default 55, suggested range 20-100 
-#define COOLING  55
-
-// SPARKING: What chance (out of 255) is there that a new spark will be lit?
-// Higher chance = more roaring fire.  Lower chance = more flickery fire.
-// Default 120, suggested range 50-200.
-#define SPARKING 120
-
 
 void Fire2012WithPalette()
 {
@@ -272,148 +344,7 @@ void Fire2012WithPalette()
 
 
 
-
-// This example shows several ways to set up and use 'palettes' of colors
-// with FastLED.
-//
-// These compact palettes provide an easy way to re-colorize your
-// animation on the fly, quickly, easily, and with low overhead.
-//
-// USING palettes is MUCH simpler in practice than in theory, so first just
-// run this sketch, and watch the pretty lights as you then read through
-// the code.  Although this sketch has eight (or more) different color schemes,
-// the entire sketch compiles down to about 6.5K on AVR.
-//
-// FastLED provides a few pre-configured color palettes, and makes it
-// extremely easy to make up your own color schemes with palettes.
-//
-// Some notes on the more abstract 'theory and practice' of
-// FastLED compact palettes are at the bottom of this file.
-
-
-
-CRGBPalette16 currentPalette;
-TBlendType    currentBlending;
-
-extern CRGBPalette16 myRedWhiteBluePalette;
-extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
-
-int brightness = 0; 
-
-
-void setup() {
-
-    FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
-    
-  
-    delay( 1000 ); // power-up safety delay
-    // FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
-    FastLED.setBrightness(  BRIGHTNESS );
-
-    
-    pinMode(PWM_PIN, INPUT);
-    Serial.begin(115200);
-    
-    //currentPalette = RainbowColors_p;
-    //currentBlending = LINEARBLEND;
-}
-
-
-void loop()
-{
-  pwm_value = pulseIn(PWM_PIN, HIGH);
-  Serial.println(pwm_value);
-  if ((pwm_value >= CLR1_R_LO and pwm_value <= CLR1_R_HI)
-    or (pwm_value >= CLR2_R_LO and pwm_value <= CLR2_R_HI)
-    or (pwm_value >= CLR3_R_LO and pwm_value <= CLR3_R_HI)) {
-    TurnSignal_R();
-  }
-  else if ((pwm_value >= CLR1_L_LO and pwm_value <= CLR1_L_HI)
-    or (pwm_value >= CLR2_L_LO and pwm_value <= CLR2_L_HI)
-    or (pwm_value >= CLR3_L_LO and pwm_value <= CLR3_L_HI)) {
-    TurnSignal_L();
-  }
-  else if (pwm_value >= CLR1_M_LO and pwm_value <= CLR1_M_HI) {
-    currentPalette = RainbowStripeColors_p;
-    currentBlending = NOBLEND;
-    static uint8_t startIndex = 0;
-    startIndex = startIndex + 1;
-    FillLEDsFromPaletteColors( startIndex );
-    FastLED.show();
-    FastLED.delay(1000 / UPDATES_PER_SECOND);
-  }
-  else if (pwm_value >= CLR2_M_LO and pwm_value <= CLR2_M_HI) {
-    currentPalette = CloudColors_p;           currentBlending = LINEARBLEND;
-    static uint8_t startIndex = 0;
-    startIndex = startIndex + 1;
-    FillLEDsFromPaletteColors( startIndex );
-    FastLED.show();
-    FastLED.delay(1000 / UPDATES_PER_SECOND);
-  }
-  else if (pwm_value >= CLR3_M_LO and pwm_value <= CLR3_M_HI) {
-    SetupBlackAndWhiteStripedPalette();       currentBlending = LINEARBLEND;
-    static uint8_t startIndex = 0;
-    startIndex = startIndex + 1;
-    FillLEDsFromPaletteColors( startIndex );
-    FastLED.show();
-    FastLED.delay(1000 / UPDATES_PER_SECOND);
-  }
-  else {
-    currentPalette = RainbowColors_p;
-    currentBlending = LINEARBLEND; 
-    static uint8_t startIndex = 0;
-    startIndex = startIndex + 1;
-    FillLEDsFromPaletteColors( startIndex );
-    FastLED.show();
-    FastLED.delay(1000 / UPDATES_PER_SECOND);
-  }
-
-  
-  
-    /*
-      for(int i = 0; i < NUM_LEDS; i++ )
-       {
-       if (pwm_value > 1700) {
-          leds[i].setRGB(125,0,255);  // Set Color HERE!!!
-       }
-       else if (pwm_value > 1500) {
-          leds[i].setRGB(255,125,250);  // Set Color HERE!!!
-       }
-       else {
-          leds[i].setRGB(255,255,0);  // Set Color HERE!!!
-       }
-       leds[i].fadeLightBy(brightness);
-       FastLED.show();
-       delay(80);  
-      }
-
-      delay(500);
-      Serial.println(c);
-
-       
-      pwm_value = pulseIn(PWM_PIN, HIGH);
-      Serial.println(pwm_value);
-
-            for(int i = 0; i < NUM_LEDS; i++ )
-       {
-       leds[i].setRGB(0,0,0);  // Set Color HERE!!!
-       leds[i].fadeLightBy(brightness);
-       FastLED.show(); 
-       delay(80);  
-      }
-    
-    
-    ChangePalettePeriodically();
-    
-    static uint8_t startIndex = 0;
-    startIndex = startIndex + 1; /* motion speed */
-    /*
-    FillLEDsFromPaletteColors( startIndex);
-    
-    FastLED.show();
-    FastLED.delay(1000 / UPDATES_PER_SECOND);
-    */
-}
+ 
 
 void FillLEDsFromPaletteColors( uint8_t colorIndex)
 {
@@ -461,50 +392,6 @@ void ChangePalettePeriodically()
 
         */
     }
-}
-
-void TurnSignal_R() 
-{  
-  for(int i = 0; i < WING_R_LED_LENGTH; i++) {
-      leds[i].setRGB(255,255,0);
-      leds[i].fadeLightBy(brightness);
-      leds[(WING_R_LED_LENGTH*2) + WING_R_LED_2_OFFSET - (i + 1)].setRGB(255,255,0);
-      leds[(WING_R_LED_LENGTH*2) + WING_R_LED_2_OFFSET - (i + 1)].fadeLightBy(brightness);
-      FastLED.show();
-      delay(10); 
-    }
-    delay(80);
-    for(int i = WING_R_LED_1_START; i < WING_R_LED_LENGTH; i++) {
-      leds[i].setRGB(0,0,0);
-      leds[i].fadeLightBy(brightness);
-      leds[(WING_R_LED_LENGTH*2) + WING_R_LED_2_OFFSET - (i + 1)].setRGB(0,0,0);
-      leds[(WING_R_LED_LENGTH*2) + WING_R_LED_2_OFFSET - (i + 1)].fadeLightBy(brightness);
-      FastLED.show();
-      delay(10); 
-    }
-    delay(80);
-}
-
-void TurnSignal_L() 
-{
-  for(int i = 0; i < WING_L_LED_LENGTH; i++) {
-      leds[i + WING_L_LED_1_START].setRGB(255,255,0);
-      leds[i + WING_L_LED_1_START].fadeLightBy(brightness);
-      leds[(WING_L_LED_LENGTH*2) + WING_L_LED_2_OFFSET - (i + 1) + WING_L_LED_1_START].setRGB(255,255,0);
-      leds[(WING_L_LED_LENGTH*2) + WING_L_LED_2_OFFSET - (i + 1) + WING_L_LED_1_START].fadeLightBy(brightness);
-      FastLED.show();
-      delay(10); 
-    }
-    delay(80);
-    for(int i = 0; i < WING_L_LED_LENGTH; i++) {
-      leds[i + WING_L_LED_1_START].setRGB(0,0,0);
-      leds[i + WING_L_LED_1_START].fadeLightBy(brightness);
-      leds[(WING_L_LED_LENGTH*2) + WING_L_LED_2_OFFSET - (i + 1) + WING_L_LED_1_START].setRGB(0,0,0);
-      leds[(WING_L_LED_LENGTH*2) + WING_L_LED_2_OFFSET - (i + 1) + WING_L_LED_1_START].fadeLightBy(brightness);
-      FastLED.show();
-      delay(10); 
-    }
-    delay(80);
 }
 
 // This function fills the palette with totally random colors.
