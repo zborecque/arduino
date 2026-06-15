@@ -12,7 +12,13 @@ Just a bunch of my personal Arduino experiments used mainly to operate addressab
 
 _under development_
 
-A concept of having a [FPV Combat](https://fpv-combat.com) aircraft of [Raptus](https://www.fpv-combat.com/download/raptus/) class being illuminated with addressable LEDs that would imitate fire effects increasing with taken damage. There might be also some additional effects available. Main PWM signal will be coming from the FPV Combat board (which is able to control one of the servos - to indicate taken damage by briefly distorting one of the aircraft steering planes - for example rudder). Additional effects might use another PWM channel, but also detecting the FPVC mixing of a single PWM channel might be used.
+A concept of having a [FPV Combat](https://fpv-combat.com) aircraft of [Raptus](https://www.fpv-combat.com/download/raptus/) class being illuminated with addressable LEDs that would imitate fire effects increasing with taken damage. There might be also some additional effects available (ie. police lights). Main PWM signal will be coming from the FPV Combat board (which is able to control one of the servos - to indicate taken damage by briefly distorting one of the aircraft steering planes - for example rudder). Additional effects might use another PWM channel, but also detecting the FPVC mixing of a single PWM channel might be used.
+
+#### Layout
+
+Below layout demonstrates the placement of 58 LEDs across the Raptus aircraft. The LED strip should have 58 LEDs in total, and they shouyld be broken into 9 sections (4 sections of 10, 4 sections of 4and one 2-LED section) connected together in the exact order as on the layout.
+
+![alt text](./FPV_Combat_damage_fire/FPV_Combat_damage_fire_layout.jpg "Title")
 
 ### Black_Mesa_Wing
 
