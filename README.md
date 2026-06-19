@@ -16,7 +16,7 @@ A concept of having a [FPV Combat](https://fpv-combat.com) aircraft of [Raptus](
 
 #### Layout
 
-Below layout demonstrates the placement of 58 LEDs across the Raptus aircraft. The LED strip should have 58 LEDs in total, and they shouyld be broken into 9 sections (4 sections of 10, 4 sections of 4and one 2-LED section) connected together in the exact order as on the layout.
+Below layout demonstrates the placement of 60 LEDs across the Raptus aircraft. The LED strip should have 60 LEDs in total, and they should be broken into 10 sections (4 sections of 10, 4 sections of 4 and 2 sections of 2 LEDs) connected together in the exact order as on the layout.
 
 ![alt text](./FPV_Combat_damage_fire/FPV_Combat_damage_fire_layout.jpg "Title")
 

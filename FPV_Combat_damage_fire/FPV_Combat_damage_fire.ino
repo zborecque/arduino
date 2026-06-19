@@ -1,23 +1,45 @@
 #include <FastLED.h>
 
 // MAIN SETTINGS
-#define NUM_LEDS                58
-#define BRIGHTNESS              64
-#define LED_PIN                 5
-#define PWM_SWTCH_PIN           7
-#define PWM_FPVC_PIN            9
-#define LED_TYPE                WS2811
-#define COLOR_ORDER             GRB
-#define UPDATES_PER_SECOND      100
-#define FRAMES_PER_SECOND       60
+#define NUM_LEDS                      60
+#define BRIGHTNESS                    64
+#define LED_PIN                       5
+#define PWM_SWTCH_PIN                 7
+#define PWM_FPVC_PIN                  9
+#define LED_TYPE                      WS2811
+#define COLOR_ORDER                   GRB
+#define UPDATES_PER_SECOND            100
+#define FRAMES_PER_SECOND             60
 
 // PWM VALUESx
-#define PWM_SWTCH_ALL_OFF_HI    1200
-#define PWM_SWTCH_FIRE_DMG_LO   1400
-#define PWM_SWTCH_FIRE_DMG_HI   1600
-#define PWM_CUSTOM_ANIM_LO      1750
-#define PWM_FPVC_NOHIT_LO       1450
-#define PWM_FPVC_NOHIT_HI       1650
+#define PWM_SWTCH_ALL_OFF_HI          1200
+#define PWM_SWTCH_FIRE_DMG_LO         1400
+#define PWM_SWTCH_FIRE_DMG_HI         1600
+#define PWM_CUSTOM_ANIM_LO            1750
+#define PWM_FPVC_NOHIT_LO             1450
+#define PWM_FPVC_NOHIT_HI             1650
+
+// LED SECTIONS
+#define LEDSECT_WING_R_TOP_START      34
+#define LEDSECT_WING_R_TOP_END        43
+#define LEDSECT_WING_L_TOP_START      46
+#define LEDSECT_WING_L_TOP_END        55
+#define LEDSECT_WING_R_BOTT_START     24
+#define LEDSECT_WING_R_BOTT_END       33
+#define LEDSECT_WING_L_BOTT_START     12
+#define LEDSECT_WING_L_BOTT_END       21
+#define LEDSECT_LIGHT_R_TOP_START     0
+#define LEDSECT_LIGHT_R_TOP_END       3
+#define LEDSECT_LIGHT_L_TOP_START     56
+#define LEDSECT_LIGHT_L_TOP_END       59
+#define LEDSECT_LIGHT_R_BOTT_START    4
+#define LEDSECT_LIGHT_R_BOTT_END      7
+#define LEDSECT_LIGHT_L_BOTT_START    8
+#define LEDSECT_LIGHT_L_BOTT_END      11
+#define LEDSECT_LIGHT_MID_TOP_START   44
+#define LEDSECT_LIGHT_MID_TOP_END     45
+#define LEDSECT_LIGHT_MID_BOTT_START  22
+#define LEDSECT_LIGHT_MID_BOTT_END    23
 
 bool gReverseDirection = false;
 
