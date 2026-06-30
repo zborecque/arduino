@@ -21,7 +21,7 @@ Below layout demonstrates the placement of 60 LEDs across the Raptus aircraft. T
 
 #### Board wiring
 
-Below layout presents the wiring between the WS2182 LED strip and the Arduino board, and how to connect power and PWM signal from RC receiver. Note, that the ProMicro board can be powered by up to 12V (not sure about the lowest value though) through the RAW pin, and it will output 5V (or 3.3V depending on board type) on the VCC pin that is used to power the LED strip.
+Below layout presents the wiring between the WS2811 LED strip and the Arduino board, and how to connect power and PWM signal from RC receiver. Note, that the ProMicro board can be powered by up to 12V (not sure about the lowest value though) through the RAW pin, and it will output 5V (or 3.3V depending on board type) on the VCC pin that is used to power the LED strip.
 
 ![alt text](./FPV_Combat_damage_fire/FPV_Combat_damage_fire_wiring.jpg "FPV Combat lights arduino board wiring")
 
