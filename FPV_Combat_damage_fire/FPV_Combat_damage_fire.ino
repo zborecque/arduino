@@ -1,518 +1,367 @@
 #include <FastLED.h>
 
-// MAIN SETTINGS
+// MAIN SETTINGS =====================================
 #define NUM_LEDS                      60
-#define BRIGHTNESS                    64
+#define BRIGHTNESS                    240
 #define LED_PIN                       5
-#define PWM_SWTCH_PIN                 7
-#define PWM_FPVC_PIN                  9
+#define PWM_PIN                       7
 #define LED_TYPE                      WS2811
 #define COLOR_ORDER                   GRB
-#define UPDATES_PER_SECOND            100
-#define FRAMES_PER_SECOND             60
+#define UPDATES_PER_SECOND            90
 
-// PWM VALUESx
-#define PWM_SWTCH_ALL_OFF_HI          1200
-#define PWM_SWTCH_FIRE_DMG_LO         1400
-#define PWM_SWTCH_FIRE_DMG_HI         1600
-#define PWM_CUSTOM_ANIM_LO            1750
-#define PWM_FPVC_NOHIT_LO             1450
-#define PWM_FPVC_NOHIT_HI             1650
+// PWM VALUES ========================================
+#define PWM_RAINBOW                   1000
+#define PWM_POLICE                    1150
+#define PWM_DAMAGE_MODE               1400
+#define PWM_HIT_DETECTION             1700
 
-// LED SECTIONS
-#define LEDSECT_WING_R_TOP_START      34
-#define LEDSECT_WING_R_TOP_END        43
-#define LEDSECT_WING_L_TOP_START      46
-#define LEDSECT_WING_L_TOP_END        55
-#define LEDSECT_WING_R_BOTT_START     24
-#define LEDSECT_WING_R_BOTT_END       33
-#define LEDSECT_WING_L_BOTT_START     12
-#define LEDSECT_WING_L_BOTT_END       21
-#define LEDSECT_LIGHT_R_TOP_START     0
-#define LEDSECT_LIGHT_R_TOP_END       3
-#define LEDSECT_LIGHT_L_TOP_START     56
-#define LEDSECT_LIGHT_L_TOP_END       59
-#define LEDSECT_LIGHT_R_BOTT_START    4
-#define LEDSECT_LIGHT_R_BOTT_END      7
-#define LEDSECT_LIGHT_L_BOTT_START    8
-#define LEDSECT_LIGHT_L_BOTT_END      11
-#define LEDSECT_LIGHT_MID_TOP_START   44
-#define LEDSECT_LIGHT_MID_TOP_END     45
-#define LEDSECT_LIGHT_MID_BOTT_START  22
-#define LEDSECT_LIGHT_MID_BOTT_END    23
+// LED LAMPS SECTIONS ================================
+// TOP LAMPS
+#define LAMP_TOP_R_START              0
+#define LAMP_TOP_R_END                3
+#define LAMP_TOP_L_START              56
+#define LAMP_TOP_L_END                59
+// BOTTOM LAMPS
+#define LAMP_BOTTOM_R_START           4
+#define LAMP_BOTTOM_R_END             7
+#define LAMP_BOTTOM_L_START           8
+#define LAMP_BOTTOM_L_END             11
+// FRONT LAMP
+#define LAMP_FRONT_TOP_START          44
+#define LAMP_FRONT_TOP_END            45
+#define LAMP_FRONT_BOTTOM_START       22
+#define LAMP_FRONT_BOTTON_END         23
 
-bool gReverseDirection = false;
+// LED FIRE SECTIONS =================================
+#define FIRE_TOP_R_START              44
+#define FIRE_TOP_R_END                34
+#define FIRE_TOP_L_START              45
+#define FIRE_TOP_L_END                55
+#define FIRE_BOTTOM_R_START           23
+#define FIRE_BOTTOM_R_END             33
+#define FIRE_BOTTOM_L_START           22
+#define FIRE_BOTTOM_L_END             12
+#define FIRE_TOPMID_R_START           0
+#define LAMP_TOPMID_R_END             3
+#define LAMP_TOPMID_L_START           56
+#define LAMP_TOPMID_L_END             59
+#define LAMP_BOTMID_R_START           7
+#define LAMP_BOTMID_R_END             4
+#define LAMP_BOTMID_L_START           8
+#define LAMP_BOTMID_L_END             11
 
-// Fire2012 by Mark Kriegsman, July 2012
-// as part of "Five Elements" shown here: http://youtu.be/knWiGsmgycY
-//// 
-// This basic one-dimensional 'fire' simulation works roughly as follows:
-// There's a underlying array of 'heat' cells, that model the temperature
-// at each point along the line.  Every cycle through the simulation, 
-// four steps are performed:
-//  1) All cells cool down a little bit, losing heat to the air
-//  2) The heat from each cell drifts 'up' and diffuses a little
-//  3) Sometimes randomly new 'sparks' of heat are added at the bottom
-//  4) The heat from each cell is rendered as a color into the leds array
-//     The heat-to-color mapping uses a black-body radiation approximation.
-//
-// Temperature is in arbitrary units from 0 (cold black) to 255 (white hot).
-//
-// This simulation scales it self a bit depending on NUM_LEDS; it should look
-// "OK" on anywhere from 20 to 100 LEDs without too much tweaking. 
-//
-// I recommend running this simulation at anywhere from 30-100 frames per second,
-// meaning an interframe delay of about 10-35 milliseconds.
-//
-// Looks best on a high-density LED setup (60+ pixels/meter).
-//
-//
-// There are two main parameters you can play with to control the look and
-// feel of your fire: COOLING (used in step 1 above), and SPARKING (used
-// in step 3 above).
-//
-// COOLING: How much does the air cool as it rises?
-// Less cooling = taller flames.  More cooling = shorter flames.
-// Default 55, suggested range 20-100 
-#define COOLING  55
+// FIRE ANIMATION PARAMETERS ==========================
+#define COOLING                       55
+#define SPARKING                      120
+#define FIRE_TIMEOUT                  3000
 
-// SPARKING: What chance (out of 255) is there that a new spark will be lit?
-// Higher chance = more roaring fire.  Lower chance = more flickery fire.
-// Default 120, suggested range 50-200.
-#define SPARKING 120
+// POLICE BEACON ANIMATION PARAMETERS
+#define POLICE_BLINKS                 32
 
-// LED SECTIONS
-// TODO 
-
-// L WING LED
-#define WING_R_LED_1_START  0
-#define WING_R_LED_2_OFFSET 5
-#define WING_R_LED_LENGTH   12
-
-// R WING LED
-#define WING_L_LED_1_START  29
-#define WING_L_LED_2_OFFSET 5
-#define WING_L_LED_LENGTH   12
-
-// PWM LEVELS (COLORS + TURN SIGNALS) ====
-// E0 ====================================
-// COLOR 1 (D0) PWM VALUES
-#define CLR1_R_LO   1915
-#define CLR1_M_LO   1930
-#define CLR1_M_HI   1950
-#define CLR1_L_HI   1980
-// COLOR 2 (D1) PWM VALUES
-#define CLR2_R_LO   1520
-#define CLR2_M_LO   1558
-#define CLR2_M_HI   1585
-#define CLR2_L_HI   1610
-// COLOR 3 (D2) PWM VALUES
-#define CLR3_R_LO   1140
-#define CLR3_M_LO   1200
-#define CLR3_M_HI   1218
-#define CLR3_L_HI   1260
-// E1 ====================================
-// COLOR 4 (D0) PWM VALUES
-#define CLR4_R_LO   1805
-#define CLR4_M_LO   1828
-#define CLR4_M_HI   1842
-#define CLR4_L_HI   1850
-// COLOR 5 (D1) PWM VALUES
-#define CLR5_R_LO   1430
-#define CLR5_M_LO   1460
-#define CLR5_M_HI   1475
-#define CLR5_L_HI   1495
-// COLOR 6 (D2) PWM VALUES
-#define CLR6_R_LO   1070
-#define CLR6_M_LO   1090
-#define CLR6_M_HI   1105
-#define CLR6_L_HI   1140
-// E2 ====================================
-// COLOR 7 (D0) PWM VALUES
-#define CLR7_R_LO   1695
-#define CLR7_M_LO   1720
-#define CLR7_M_HI   1730
-#define CLR7_L_HI   1750
-// COLOR 8 (D1) PWM VALUES
-#define CLR8_R_LO   1330
-#define CLR8_M_LO   1350
-#define CLR8_M_HI   1370
-#define CLR8_L_HI   1390
-// COLOR 9 (D2) PWM VALUES
-#define CLR9_R_LO   965
-#define CLR9_M_LO   985
-#define CLR9_M_HI   999
-#define CLR9_L_HI   1025
-// PWM LEVELS EOF ========================
+// ====================================================
 
 CRGB leds[NUM_LEDS];
 
-int c = 1;
+int clear_leds = 0;
 int hits_taken = 0;
-int pwm_switch_value;
-int pwm_fpvc_value;
-
-int CLR1_R_HI = CLR1_M_LO + 1;
-int CLR1_L_LO = CLR1_M_HI - 1;
-int CLR2_R_HI = CLR2_M_LO + 1;
-int CLR2_L_LO = CLR2_M_HI - 1;
-int CLR3_R_HI = CLR3_M_LO + 1;
-int CLR3_L_LO = CLR3_M_HI - 1;
-
-
-
-
-
-
-
-
-// == FIRE EXAMPLE =============================================
-
-
-
-
-// Fire2012 with programmable Color Palette
-//
-// This code is the same fire simulation as the original "Fire2012",
-// but each heat cell's temperature is translated to color through a FastLED
-// programmable color palette, instead of through the "HeatColor(...)" function.
-//
-// Four different static color palettes are provided here, plus one dynamic one.
-// 
-// The three static ones are: 
-//   1. the FastLED built-in HeatColors_p -- this is the default, and it looks
-//      pretty much exactly like the original Fire2012.
-//
-//  To use any of the other palettes below, just "uncomment" the corresponding code.
-//
-//   2. a gradient from black to red to yellow to white, which is
-//      visually similar to the HeatColors_p, and helps to illustrate
-//      what the 'heat colors' palette is actually doing,
-//   3. a similar gradient, but in blue colors rather than red ones,
-//      i.e. from black to blue to aqua to white, which results in
-//      an "icy blue" fire effect,
-//   4. a simplified three-step gradient, from black to red to white, just to show
-//      that these gradients need not have four components; two or
-//      three are possible, too, even if they don't look quite as nice for fire.
-//
-// The dynamic palette shows how you can change the basic 'hue' of the
-// color palette every time through the loop, producing "rainbow fire".
+int hits_last_time = 0;
+int fire_start_side = 0;
+int fire_time_start = 0;
+int fire_time_stop = 0;
+int fire_last_level = 0;
+int fire_mode_entered = 0;
+int fire_mode_exit_time = 0;
+int police_time_start = 0;
+int police_beacon_blink_count = 0;
+int police_beacon_count_delay = 0;
+int police_beacon_ticks = 0;
+int police_beacon_ticks_odd = 0;
+int police_last_mode = 0;
+int pwm_value;
 
 CRGBPalette16 gPal;
-
 CRGBPalette16 currentPalette;
 TBlendType    currentBlending;
 
 extern CRGBPalette16 myRedWhiteBluePalette;
-extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
 
 void setup() {
-
-  delay(3000); // sanity delay
+  delay(3000);
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
-  FastLED.setBrightness( BRIGHTNESS );
-
-  // This first palette is the basic 'black body radiation' colors,
-  // which run from black to red to bright yellow to white.
+  FastLED.setBrightness(BRIGHTNESS);
   gPal = HeatColors_p;
-  
-  // These are other ways to set up the color palette for the 'fire'.
-  // First, a gradient from black to red to yellow to white -- similar to HeatColors_p
-  //   gPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Yellow, CRGB::White);
-  
-  // Second, this palette is like the heat colors, but blue/aqua instead of red/yellow
-  //   gPal = CRGBPalette16( CRGB::Black, CRGB::Blue, CRGB::Aqua,  CRGB::White);
-  
-  // Third, here's a simpler, three-step gradient, from black to red to white
-  //   gPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::White);
-
-  pinMode(PWM_SWTCH_PIN, INPUT);
-  pinMode(PWM_FPVC_PIN, INPUT);
-
-
-  Serial.begin(115200);
-  
-  //currentPalette = RainbowColors_p;
-  //currentBlending = LINEARBLEND;
-
+  // pinMode(PWM_FPVC_PIN, INPUT);
+  // Serial.begin(115200);
 }
 
 void loop()
 {
-
-  // Add entropy to random number generator; we use a lot of it.
   random16_add_entropy(random());
-
-  // Set up PWM readers
-  pwm_switch_value = pulseIn(PWM_SWTCH_PIN, HIGH);
-  pwm_fpvc_value = pulseIn(PWM_FPVC_PIN, HIGH);
-
-  Serial.println(pwm_switch_value + " | " + pwm_fpvc_value);
-
-  // Fourth, the most sophisticated: this one sets up a new palette every
-  // time through the loop, based on a hue that changes every time.
-  // The palette is a gradient from black, to a dark color based on the hue,
-  // to a light color based on the hue, to white.
-  //
-  //   static uint8_t hue = 0;
-  //   hue++;
-  //   CRGB darkcolor  = CHSV(hue,255,192); // pure hue, three-quarters brightness
-  //   CRGB lightcolor = CHSV(hue,128,255); // half 'whitened', full brightness
-  //   gPal = CRGBPalette16( CRGB::Black, darkcolor, lightcolor, CRGB::White);
-
-  Fire2012WithPalette(); // run simulation frame, using palette colors
-  
-  FastLED.show(); // display this frame
-  FastLED.delay(1000 / FRAMES_PER_SECOND);
-
-  /*
-  if ((pwm_value >= CLR1_R_LO and pwm_value <= CLR1_R_HI)
-    or (pwm_value >= CLR2_R_LO and pwm_value <= CLR2_R_HI)
-    or (pwm_value >= CLR3_R_LO and pwm_value <= CLR3_R_HI)) {
-    TurnSignal_R();
+  pwm_value = pulseIn(PWM_PIN, HIGH);
+  int current_time = millis();
+  if (pwm_value >= PWM_HIT_DETECTION) {
+    if ((hits_last_time == 0 or (hits_last_time + FIRE_TIMEOUT) < current_time) and hits_taken < 10) {
+      hits_taken++;
+      hits_last_time = current_time;
+    }
+    if (hits_last_time + 150 > current_time and hits_taken < 10) {
+      SetFireLevel(7, 1);
+    }
+    else {
+      SetFireLevel(hits_taken, 0);
+    }
+    police_last_mode = 0;
+    fire_mode_entered = 1;
   }
-  else if ((pwm_value >= CLR1_L_LO and pwm_value <= CLR1_L_HI)
-    or (pwm_value >= CLR2_L_LO and pwm_value <= CLR2_L_HI)
-    or (pwm_value >= CLR3_L_LO and pwm_value <= CLR3_L_HI)) {
-    TurnSignal_L();
+  else if (pwm_value >= PWM_DAMAGE_MODE) {
+    SetFireLevel(hits_taken, 0);
+    police_last_mode = 0;
+    fire_mode_entered = 1;
   }
-  else if (pwm_value >= CLR1_M_LO and pwm_value <= CLR1_M_HI) {
-    currentPalette = RainbowStripeColors_p;
-    currentBlending = NOBLEND;
-    static uint8_t startIndex = 0;
-    startIndex = startIndex + 1;
-    FillLEDsFromPaletteColors( startIndex );
-    FastLED.show();
-    FastLED.delay(1000 / UPDATES_PER_SECOND);
+  else if (pwm_value >= PWM_POLICE) {
+    if (fire_mode_entered == 1) {
+      if (fire_mode_exit_time == 0) {
+        fire_mode_exit_time = current_time;
+      }
+      if (fire_mode_exit_time + 5000 < current_time) {
+        fire_mode_entered = 0;
+      }
+      SetFireLevel(hits_taken, 0);
+    }
+    else {
+      if (police_last_mode == 0) {
+        FastLED.clear();
+        police_last_mode = 1;
+      }
+      else {
+        currentBlending = LINEARBLEND;
+        static uint8_t startIndex = 0;
+        startIndex = startIndex + 1;
+        PoliceBeacons(1);
+        FillLEDsFromPaletteColors(startIndex, LAMP_TOP_L_START, LAMP_TOP_L_END);
+        FillLEDsFromPaletteColors(startIndex, LAMP_BOTTOM_R_START, LAMP_BOTTOM_R_END);
+        FillLEDsFromPaletteColors(startIndex, LAMP_FRONT_TOP_START, LAMP_FRONT_TOP_END);
+        PoliceBeacons(0);
+        FillLEDsFromPaletteColors(startIndex, LAMP_TOP_R_START, LAMP_TOP_R_END);
+        FillLEDsFromPaletteColors(startIndex, LAMP_BOTTOM_L_START, LAMP_BOTTOM_L_END);
+        FillLEDsFromPaletteColors(startIndex, LAMP_FRONT_BOTTOM_START, LAMP_FRONT_BOTTON_END);
+      }
+    }
   }
-  else if (pwm_value >= CLR2_M_LO and pwm_value <= CLR2_M_HI) {
-    currentPalette = CloudColors_p;           currentBlending = LINEARBLEND;
-    static uint8_t startIndex = 0;
-    startIndex = startIndex + 1;
-    FillLEDsFromPaletteColors( startIndex );
-    FastLED.show();
-    FastLED.delay(1000 / UPDATES_PER_SECOND);
-  }
-  else if (pwm_value >= CLR3_M_LO and pwm_value <= CLR3_M_HI) {
-    SetupBlackAndWhiteStripedPalette();       currentBlending = LINEARBLEND;
-    static uint8_t startIndex = 0;
-    startIndex = startIndex + 1;
-    FillLEDsFromPaletteColors( startIndex );
-    FastLED.show();
-    FastLED.delay(1000 / UPDATES_PER_SECOND);
+  else if (pwm_value >= PWM_RAINBOW) {
+    if (fire_mode_entered == 1) {
+      if (fire_mode_exit_time == 0) {
+        fire_mode_exit_time = current_time;
+      }
+      if (fire_mode_exit_time + 5000 < current_time) {
+        fire_mode_entered = 0;
+      }
+      SetFireLevel(hits_taken, 0);
+    }
+    else {
+      currentPalette = RainbowColors_p;
+      currentBlending = LINEARBLEND; 
+      static uint8_t startIndex = 0;
+      startIndex = startIndex + 1;
+      FillLEDsFromPaletteColors(startIndex, 0, NUM_LEDS-1);
+      police_last_mode = 0;
+    }
   }
   else {
-    currentPalette = RainbowColors_p;
-    currentBlending = LINEARBLEND; 
-    static uint8_t startIndex = 0;
-    startIndex = startIndex + 1;
-    FillLEDsFromPaletteColors( startIndex );
-    FastLED.show();
-    FastLED.delay(1000 / UPDATES_PER_SECOND);
-  }
-  */
-
-}
-
-void Fire2012WithPalette()
-{
-// Array of temperature readings at each simulation cell
-  static byte heat[NUM_LEDS];
-
-  // Step 1.  Cool down every cell a little
-    for( int i = 0; i < NUM_LEDS; i++) {
-      heat[i] = qsub8( heat[i],  random8(0, ((COOLING * 10) / NUM_LEDS) + 2));
-    }
-  
-    // Step 2.  Heat from each cell drifts 'up' and diffuses a little
-    for( int k= NUM_LEDS - 1; k >= 2; k--) {
-      heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2] ) / 3;
-    }
-    
-    // Step 3.  Randomly ignite new 'sparks' of heat near the bottom
-    if( random8() < SPARKING ) {
-      int y = random8(7);
-      heat[y] = qadd8( heat[y], random8(160,255) );
-    }
-
-    // Step 4.  Map from heat cells to LED colors
-    for( int j = 0; j < NUM_LEDS; j++) {
-      // Scale the heat value from 0-255 down to 0-240
-      // for best results with color palettes.
-      byte colorindex = scale8( heat[j], 240);
-      CRGB color = ColorFromPalette( gPal, colorindex);
-      int pixelnumber;
-      if( gReverseDirection ) {
-        pixelnumber = (NUM_LEDS-1) - j;
-      } else {
-        pixelnumber = j;
+    if (fire_mode_entered == 1) {
+      if (fire_mode_exit_time == 0) {
+        fire_mode_exit_time = current_time;
       }
-      leds[pixelnumber] = color;
+      if (fire_mode_exit_time + 5000 < current_time) {
+        fire_mode_entered = 0;
+      }
+      SetFireLevel(hits_taken, 0);
     }
-}
-
-
-// ==============================================================================
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-void FillLEDsFromPaletteColors( uint8_t colorIndex)
-{
-    uint8_t brightness = 255;
-    
-    for( int i = 0; i < NUM_LEDS; ++i) {
-        leds[i] = ColorFromPalette( currentPalette, colorIndex, brightness, currentBlending);
-        colorIndex += 3;
+    else {
+      hits_taken = 0;
+      hits_last_time = 0;
+      police_time_start = 0;
+      police_beacon_blink_count = 0;
+      police_last_mode = 0;
+      FastLED.clear();
     }
+  }
+  FastLED.show();
+  FastLED.delay(1000 / UPDATES_PER_SECOND);
 }
 
-
-// There are several different palettes of colors demonstrated here.
-//
-// FastLED provides several 'preset' palettes: RainbowColors_p, RainbowStripeColors_p,
-// OceanColors_p, CloudColors_p, LavaColors_p, ForestColors_p, and PartyColors_p.
-//
-// Additionally, you can manually define your own color palettes, or you can write
-// code that creates color palettes on the fly.  All are shown here.
-
-void ChangePalettePeriodically()
+void SetFireLevel(int fire_level, int explosion)
 {
-    uint8_t secondHand = (millis() / 1000) % 60;
-    static uint8_t lastSecond = 99;
-    
-    if( lastSecond != secondHand) {
-        lastSecond = secondHand;
-
-        if( secondHand < 30 ) { SetupZbrTestPalette();    currentBlending = LINEARBLEND;  }
-        else {  currentPalette = RainbowColors_p;         currentBlending = LINEARBLEND;  }
-
-        /*
-        
-        if( secondHand ==  0)  { currentPalette = RainbowColors_p;         currentBlending = LINEARBLEND; }
-        if( secondHand == 10)  { currentPalette = RainbowStripeColors_p;   currentBlending = NOBLEND;  }
-        if( secondHand == 15)  { currentPalette = RainbowStripeColors_p;   currentBlending = LINEARBLEND; }
-        if( secondHand == 20)  { SetupPurpleAndGreenPalette();             currentBlending = LINEARBLEND; }
-        if( secondHand == 25)  { SetupTotallyRandomPalette();              currentBlending = LINEARBLEND; }
-        if( secondHand == 30)  { SetupBlackAndWhiteStripedPalette();       currentBlending = NOBLEND; }
-        if( secondHand == 35)  { SetupBlackAndWhiteStripedPalette();       currentBlending = LINEARBLEND; }
-        if( secondHand == 40)  { currentPalette = CloudColors_p;           currentBlending = LINEARBLEND; }
-        if( secondHand == 45)  { currentPalette = PartyColors_p;           currentBlending = LINEARBLEND; }
-        if( secondHand == 50)  { currentPalette = myRedWhiteBluePalette_p; currentBlending = NOBLEND;  }
-        if( secondHand == 55)  { currentPalette = myRedWhiteBluePalette_p; currentBlending = LINEARBLEND; }
-
-        */
+  int current_fire_side = FireSingleSide();
+  int cooling_modifier = 0;
+  int sparking_modifier = 0;
+  if (explosion == 1) {
+    cooling_modifier = -30;
+    sparking_modifier = 75;
+  }
+  if (fire_level >= 8) {
+    cooling_modifier = fire_level * -2.5;
+    sparking_modifier = fire_level * 8;
+  }
+  if (fire_level == 6) {
+    cooling_modifier = 15;
+    sparking_modifier = -15;
+  }
+  if (fire_level == 5) {
+    cooling_modifier = 25;
+    sparking_modifier = -25;
+  }
+  if (fire_level == 4) {
+    cooling_modifier = 35;
+    sparking_modifier = -35;
+  }
+  if (fire_level <= 2) {
+    cooling_modifier = 75;
+    sparking_modifier = 75;
+  }
+  if (fire_last_level != fire_level) {
+    FastLED.clear();
+    fire_last_level = fire_level;
+  }
+  else if (fire_level >= 5) {
+    FireSectionMax11(fire_level + 1, FIRE_TOP_L_START, FIRE_TOP_L_END - (10 - fire_level), COOLING + cooling_modifier, SPARKING + sparking_modifier);
+    FireSectionMax11(fire_level + 1, FIRE_TOP_R_START, FIRE_TOP_R_END + (10 - fire_level), COOLING + cooling_modifier, SPARKING + sparking_modifier);
+    FireSectionMax11(fire_level + 1, FIRE_BOTTOM_L_START, FIRE_BOTTOM_L_END + (10 - fire_level), COOLING + cooling_modifier, SPARKING + sparking_modifier);
+    FireSectionMax11(fire_level + 1, FIRE_BOTTOM_R_START, FIRE_BOTTOM_R_END - (10 - fire_level), COOLING + cooling_modifier, SPARKING + sparking_modifier);
+  }
+  else if (fire_level >= 3) {
+    if (current_fire_side == 1) {
+      FireSectionMax11(fire_level + 1, FIRE_TOP_L_START, FIRE_TOP_L_END - (10 - fire_level), COOLING + cooling_modifier, SPARKING + sparking_modifier);
+      FireSectionMax11(fire_level + 1, FIRE_BOTTOM_L_START, FIRE_BOTTOM_L_END + (10 - fire_level), COOLING + cooling_modifier, SPARKING + sparking_modifier);
     }
-}
-
-// This function fills the palette with totally random colors.
-void SetupTotallyRandomPalette()
-{
-    for( int i = 0; i < 16; ++i) {
-        currentPalette[i] = CHSV( random8(), 255, random8());
+    if (current_fire_side == 2) {
+      FireSectionMax11(fire_level + 1, FIRE_TOP_R_START, FIRE_TOP_R_END + (10 - fire_level), COOLING + cooling_modifier, SPARKING + sparking_modifier);
+      FireSectionMax11(fire_level + 1, FIRE_BOTTOM_R_START, FIRE_BOTTOM_R_END - (10 - fire_level), COOLING + cooling_modifier, SPARKING + sparking_modifier);
     }
+  }
+  else if (fire_level == 2) {
+    int random_fire = random(10);
+    int current_time = millis();
+    int random_threshold = 3;
+    int time_fire = 1000;
+    int time_stop = 500;
+    if (fire_level < 2) {
+      random_threshold = 7;
+      time_fire = 300;
+      time_stop = 1500;
+    }
+    if ((random_fire > random_threshold or (fire_time_start > 0 and fire_time_start + time_fire > current_time)) and (fire_time_stop == 0 or fire_time_stop + time_stop < current_time)) {
+      if (fire_time_start == 0) {
+        fire_time_start = current_time;
+      }
+      if (current_fire_side == 1) {
+      FireSectionMax11(fire_level + 1, FIRE_TOP_L_START, FIRE_TOP_L_END - (10 - fire_level), COOLING + cooling_modifier, SPARKING + sparking_modifier);
+      FireSectionMax11(fire_level + 1, FIRE_BOTTOM_L_START, FIRE_BOTTOM_L_END + (10 - fire_level), COOLING + cooling_modifier, SPARKING + sparking_modifier);
+      }
+      if (current_fire_side == 2) {
+      FireSectionMax11(fire_level + 1, FIRE_TOP_R_START, FIRE_TOP_R_END + (10 - fire_level), COOLING + cooling_modifier, SPARKING + sparking_modifier);
+      FireSectionMax11(fire_level + 1, FIRE_BOTTOM_R_START, FIRE_BOTTOM_R_END - (10 - fire_level), COOLING + cooling_modifier, SPARKING + sparking_modifier);
+      }
+    }
+    else {
+      fire_time_start = 0;
+      fire_time_stop = current_time;
+      FastLED.clear();
+    }
+  }
+  else {
+    fire_start_side = 0;
+    FastLED.clear();
+  }
 }
 
-// This function sets up a palette of black and white stripes,
-// using code.  Since the palette is effectively an array of
-// sixteen CRGB colors, the various fill_* functions can be used
-// to set them up.
-void SetupBlackAndWhiteStripedPalette()
+int FireSingleSide()
 {
-    // 'black out' all 16 palette entries...
-    fill_solid( currentPalette, 16, CRGB::Black);
-    // and set every fourth one to white.
-    currentPalette[0] = CRGB::White;
-    currentPalette[4] = CRGB::White;
-    currentPalette[8] = CRGB::White;
-    currentPalette[12] = CRGB::White;
-    
+  if (fire_start_side < 1 or fire_start_side > 2) {
+    int fire_start_draw = random(10);
+    if (fire_start_draw >= 5) {
+      fire_start_side = 1;
+    }
+    else {
+      fire_start_side = 2;
+    }
+  }
+  return fire_start_side;
 }
 
-// This function sets up a palette of purple and green stripes.
-void SetupPurpleAndGreenPalette()
+void FireSectionMax11(int length, int start_led, int end_led, int cooling, int sparking)
 {
-    CRGB purple = CHSV( HUE_PURPLE, 255, 255);
-    CRGB green  = CHSV( HUE_GREEN, 255, 255);
-    CRGB black  = CRGB::Black;
-    
-    currentPalette = CRGBPalette16(
-                                   green,  green,  black,  black,
-                                   purple, purple, black,  black,
-                                   green,  green,  black,  black,
-                                   purple, purple, black,  black );
+  static byte heat[11];
+  for(int i = 0; i < length; i++) {
+    heat[i] = qsub8(heat[i],  random8(0, ((cooling * (length - 1)) / length) + 2));
+  }
+  for(int k = length - 1; k >= 2; k--) {
+    heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2]) / 3;
+  }
+  if(random8() < sparking) {
+    int y = random8(7);
+    heat[y] = qadd8(heat[y], random8(160, 255));
+  }
+  for(int j = 0; j < length; j++) {
+    byte colorindex = scale8( heat[j], 240);
+    CRGB color = ColorFromPalette(gPal, colorindex);
+    int pixelnumber;
+    if (end_led < start_led) {
+      pixelnumber = start_led - j;
+    } else {
+      pixelnumber = start_led + j;
+    }
+    leds[pixelnumber] = color;
+  }
 }
 
-void SetupZbrTestPalette()
+void PoliceBeacons(int is_odd)
 {
-    CRGB red  = CHSV( HUE_PINK, 255, 255);
-    CRGB black  = CRGB::Black;
-
-    currentPalette = CRGBPalette16(
-                               red,  black,  red,  black,
-                               red,  black,  red,  black,
-                               red,  black,  red,  black,
-                               red,  black,  red,  black );
+  CRGB blue = CHSV(HUE_BLUE, 255, 255);
+  CRGB black = CRGB::Black;
+  if (police_beacon_ticks >= POLICE_BLINKS) {
+    currentPalette = CRGBPalette16(black, black, black, black, black, black, black, black, black, black, black, black, black, black, black, black);
+    if (police_beacon_count_delay >= 4) {
+      police_beacon_count_delay = 0;
+      police_beacon_ticks = 0;
+      if (police_beacon_ticks_odd == 0) {
+        police_beacon_ticks_odd = 1;
+      }
+      else {
+        police_beacon_ticks_odd = 0;
+      }
+    }
+    else {
+      police_beacon_count_delay++;
+    }
+  }
+  else {
+    if (police_beacon_blink_count < 1) {
+      if ((is_odd == 1 and police_beacon_ticks_odd == 1) or (is_odd == 0 and police_beacon_ticks_odd == 0)) {
+        currentPalette = CRGBPalette16(blue, blue, blue, blue, blue, blue, blue, blue, blue, blue, blue, blue, blue, blue, blue, blue);
+      }
+      else {
+        currentPalette = CRGBPalette16(black, black, black, black, black, black, black, black, black, black, black, black, black, black, black, black);
+      }
+    }
+    else if (police_beacon_blink_count < 2) {
+      currentPalette = CRGBPalette16(black, black, black, black, black, black, black, black, black, black, black, black, black, black, black, black);
+    }
+    if (police_beacon_blink_count >= 2) {
+      police_beacon_blink_count = 0;
+      police_beacon_ticks++;
+    }
+    else {
+      police_beacon_blink_count++;
+    }
+  }
 }
 
-
-// This example shows how to set up a static color palette
-// which is stored in PROGMEM (flash), which is almost always more
-// plentiful than RAM.  A static PROGMEM palette like this
-// takes up 64 bytes of flash.
-const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM =
+void FillLEDsFromPaletteColors(uint8_t colorIndex, int startIndex, int endIndex)
 {
-    CRGB::Red,
-    CRGB::Gray, // 'white' is too bright compared to red and blue
-    CRGB::Blue,
-    CRGB::Black,
-    
-    CRGB::Red,
-    CRGB::Gray,
-    CRGB::Blue,
-    CRGB::Black,
-    
-    CRGB::Red,
-    CRGB::Red,
-    CRGB::Gray,
-    CRGB::Gray,
-    CRGB::Blue,
-    CRGB::Blue,
-    CRGB::Black,
-    CRGB::Black
-};
-
-
-
-// Additional notes on FastLED compact palettes:
-//
-// Normally, in computer graphics, the palette (or "color lookup table")
-// has 256 entries, each containing a specific 24-bit RGB color.  You can then
-// index into the color palette using a simple 8-bit (one byte) value.
-// A 256-entry color palette takes up 768 bytes of RAM, which on Arduino
-// is quite possibly "too many" bytes.
-//
-// FastLED does offer traditional 256-element palettes, for setups that
-// can afford the 768-byte cost in RAM.
-//
-// However, FastLED also offers a compact alternative.  FastLED offers
-// palettes that store 16 distinct entries, but can be accessed AS IF
-// they actually have 256 entries; this is accomplished by interpolating
-// between the 16 explicit entries to create fifteen intermediate palette
-// entries between each pair.
-//
-// So for example, if you set the first two explicit entries of a compact 
-// palette to Green (0,255,0) and Blue (0,0,255), and then retrieved 
-// the first sixteen entries from the virtual palette (of 256), you'd get
-// Green, followed by a smooth gradient from green-to-blue, and then Blue.
+  uint8_t brightness = 255;
+  for (int i = startIndex; i <= endIndex; ++i) {
+    leds[i] = ColorFromPalette(currentPalette, colorIndex, brightness, currentBlending);
+    colorIndex += 3;
+  }
+}
